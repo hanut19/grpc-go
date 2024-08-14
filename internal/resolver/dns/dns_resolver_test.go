@@ -1368,3 +1368,17 @@ func (s) TestMinResolutionInterval_NoExtraDelay(t *testing.T) {
 	case <-stateCh:
 	}
 }
+func TestDialIPv6(t *testing.T) {
+
+	// IPv6 address with a port number
+	ipv6Address := "[2001:4860:4860::8888]:80"
+
+	// Dial the IPv6 address
+	conn, err := net.Dial("tcp", ipv6Address)
+	if err != nil {
+		t.Fatalf("Failed to connect to IPv6 address %s: %v", ipv6Address, err)
+	}
+	defer conn.Close()
+
+	t.Logf("Successfully connected to IPv6 address %s", ipv6Address)
+}
