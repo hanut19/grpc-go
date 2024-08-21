@@ -1368,17 +1368,51 @@ func (s) TestMinResolutionInterval_NoExtraDelay(t *testing.T) {
 	case <-stateCh:
 	}
 }
-func TestDialIPv6(t *testing.T) {
 
-	// IPv6 address with a port number
-	ipv6Address := "[2001:4860:4860::8888]:80"
-
-	// Dial the IPv6 address
-	conn, err := net.Dial("tcp", ipv6Address)
-	if err != nil {
-		t.Fatalf("Failed to connect to IPv6 address %s: %v", ipv6Address, err)
+func (s) TestIPv6Address(t *testing.T) {
+	tests := []struct {
+		name              string
+		target            string
+		hostLookupTable   map[string][]string
+		srvLookupTable    map[string][]*net.SRV
+		txtLookupTable    map[string][]string
+		wantAddrs         []resolver.Address
+		wantBalancerAddrs []resolver.Address
+		wantSC            string
+	}{
+		{
+			name:   "ipv6_address",
+			target: "srv.ipv6.single.fake",
+			hostLookupTable: map[string][]string{
+				"srv.ipv6.single.fake": nil,
+				"ipv6.single.fake":     {"2001:4860:4860::8888"},
+			},
+			srvLookupTable: map[string][]*net.SRV{
+				"_grpclb._tcp.srv.ipv6.single.fake": {&net.SRV{Target: "ipv6.single.fake", Port: 80}},
+			},
+			txtLookupTable: map[string][]string{
+				"_grpc_config.srv.ipv6.single.fake": txtRecordServiceConfig(txtRecordNonMatching),
+			},
+			wantAddrs:         nil,
+			wantBalancerAddrs: []resolver.Address{{Addr: "[2001:4860:4860::8888]:80", ServerName: "ipv6.single.fake"}},
+			wantSC:            "{}",
+		},
 	}
-	defer conn.Close()
 
-	t.Logf("Successfully connected to IPv6 address %s", ipv6Address)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			overrideTimeAfterFunc(t, 2*defaultTestTimeout)
+			overrideNetResolver(t, &testNetResolver{
+				hostLookupTable: test.hostLookupTable,
+				srvLookupTable:  test.srvLookupTable,
+				txtLookupTable:  test.txtLookupTable,
+			})
+			enableSRVLookups(t)
+			_, stateCh, _ := buildResolverWithTestClientConn(t, test.target)
+
+			ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+			defer cancel()
+			verifyUpdateFromResolver(ctx, t, stateCh, test.wantAddrs, test.wantBalancerAddrs, test.wantSC)
+		})
+	}
 }
