@@ -1385,16 +1385,16 @@ func (s) TestIPv6Address(t *testing.T) {
 			target: "srv.ipv6.single.fake",
 			hostLookupTable: map[string][]string{
 				"srv.ipv6.single.fake": nil,
-				"ipv6.single.fake":     {"2001:4860:4860::8888"},
+				"ipv6.single.fake":     {"fe80::1ff:fe23:4567:890a%eth2"},
 			},
 			srvLookupTable: map[string][]*net.SRV{
-				"_grpclb._tcp.srv.ipv6.single.fake": {&net.SRV{Target: "ipv6.single.fake", Port: 80}},
+				"_grpclb._tcp.srv.ipv6.single.fake": {&net.SRV{Target: "ipv6.single.fake", Port: 8080}},
 			},
 			txtLookupTable: map[string][]string{
 				"_grpc_config.srv.ipv6.single.fake": txtRecordServiceConfig(txtRecordNonMatching),
 			},
 			wantAddrs:         nil,
-			wantBalancerAddrs: []resolver.Address{{Addr: "[2001:4860:4860::8888]:80", ServerName: "ipv6.single.fake"}},
+			wantBalancerAddrs: []resolver.Address{{Addr: "[fe80::1ff:fe23:4567:890a%eth2]:8080", ServerName: "ipv6.single.fake"}},
 			wantSC:            "{}",
 		},
 	}
