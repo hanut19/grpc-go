@@ -755,6 +755,11 @@ func (s) TestIPResolver(t *testing.T) {
 			target:   "[2001:db8::1]:http",
 			wantAddr: []resolver.Address{{Addr: "[2001:db8::1]:http"}},
 		},
+		{
+			name:     "ipv6 non-default port no brackets",
+			target:   "fe80::1ff:fe23:4567:890a%eth2",
+			wantAddr: []resolver.Address{{Addr: "[fe80::1ff:fe23:4567:890a%eth2]:8080"}},
+		},
 		// TODO(yuxuanli): zone support?
 	}
 
@@ -1366,53 +1371,5 @@ func (s) TestMinResolutionInterval_NoExtraDelay(t *testing.T) {
 	case err := <-errorCh:
 		t.Fatalf("Unexpected error from resolver, %v", err)
 	case <-stateCh:
-	}
-}
-
-func (s) TestIPv6Address(t *testing.T) {
-	tests := []struct {
-		name              string
-		target            string
-		hostLookupTable   map[string][]string
-		srvLookupTable    map[string][]*net.SRV
-		txtLookupTable    map[string][]string
-		wantAddrs         []resolver.Address
-		wantBalancerAddrs []resolver.Address
-		wantSC            string
-	}{
-		{
-			name:   "ipv6_address",
-			target: "srv.ipv6.single.fake",
-			hostLookupTable: map[string][]string{
-				"srv.ipv6.single.fake": nil,
-				"ipv6.single.fake":     {"fe80::1ff:fe23:4567:890a%eth2"},
-			},
-			srvLookupTable: map[string][]*net.SRV{
-				"_grpclb._tcp.srv.ipv6.single.fake": {&net.SRV{Target: "ipv6.single.fake", Port: 8080}},
-			},
-			txtLookupTable: map[string][]string{
-				"_grpc_config.srv.ipv6.single.fake": txtRecordServiceConfig(txtRecordNonMatching),
-			},
-			wantAddrs:         nil,
-			wantBalancerAddrs: []resolver.Address{{Addr: "[fe80::1ff:fe23:4567:890a%eth2]:8080", ServerName: "ipv6.single.fake"}},
-			wantSC:            "{}",
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			overrideTimeAfterFunc(t, 2*defaultTestTimeout)
-			overrideNetResolver(t, &testNetResolver{
-				hostLookupTable: test.hostLookupTable,
-				srvLookupTable:  test.srvLookupTable,
-				txtLookupTable:  test.txtLookupTable,
-			})
-			enableSRVLookups(t)
-			_, stateCh, _ := buildResolverWithTestClientConn(t, test.target)
-
-			ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
-			defer cancel()
-			verifyUpdateFromResolver(ctx, t, stateCh, test.wantAddrs, test.wantBalancerAddrs, test.wantSC)
-		})
 	}
 }
