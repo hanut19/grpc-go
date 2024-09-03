@@ -757,7 +757,7 @@ func (s) TestIPResolver(t *testing.T) {
 		},
 		{
 			name:     "ipv6 non-default port no brackets",
-			target:   "fe80::1ff:fe23:4567:890a%eth2",
+			target:   "[fe80::1ff:fe23:4567:890a%25eth2]:8080",
 			wantAddr: []resolver.Address{{Addr: "[fe80::1ff:fe23:4567:890a%eth2]:8080"}},
 		},
 		// TODO(yuxuanli): zone support?

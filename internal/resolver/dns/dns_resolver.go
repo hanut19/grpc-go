@@ -354,12 +354,21 @@ func (d *dnsResolver) lookup() (*resolver.State, error) {
 // If addr is an IPv6 address, return the addr enclosed in square brackets and
 // ok = true.
 func formatIP(addr string) (addrIP string, ok bool) {
-	ip := net.ParseIP(addr)
+	// Split the address into IP and zone parts if it contains a zone identifier
+	ipStr := addr
+	if strings.Contains(addr, "%") {
+		ipStr = addr[:strings.Index(addr, "%")]
+	}
+	ip := net.ParseIP(ipStr)
 	if ip == nil {
 		return "", false
 	}
 	if ip.To4() != nil {
 		return addr, true
+	}
+	// IPv6 addresses need brackets
+	if strings.Contains(addr, "%") {
+		return "[" + ipStr + addr[strings.Index(addr, "%"):] + "]", true
 	}
 	return "[" + addr + "]", true
 }
