@@ -158,7 +158,7 @@ func (s) TestNewHTTP2ClientTarget(t *testing.T) {
 				t.Errorf("got nil, want an error")
 			}
 			expectedError := transportError{msg: test.expected}
-			err = &transportError{msg: err.Error()}
+			err = transportError{msg: err.Error()}
 			if !errors.Is(err, expectedError) {
 				t.Fatalf("TestNewHTTP2ClientTarget() = %s, want %s", err.Error(), test.expected)
 			}
