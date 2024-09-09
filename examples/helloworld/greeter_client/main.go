@@ -22,7 +22,9 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
+	"net"
 	"time"
 
 	"google.golang.org/grpc"
@@ -57,4 +59,35 @@ func main() {
 		log.Fatalf("could not greet: %v", err)
 	}
 	log.Printf("Greeting: %s", r.GetMessage())
+
+	fmt.Println("+++++++++++++++++++++++++++++++++++")
+
+	ipStr1 := "dns:///[fe80::1ff:fe23:4567:890a%eth2]:8080"
+	ipStr2 := "[fe80::1ff:fe23:4567:890a%eth2]:8080"
+	ipStr3 := "fe80::1ff:fe23:4567:890a%eth2"
+
+	// Parse the IP addresses
+	ip1 := net.ParseIP(ipStr1)
+	ip2 := net.ParseIP(ipStr2)
+	ip3 := net.ParseIP(ipStr3)
+
+	// Check and print the results
+	if ip1 == nil {
+		log.Println("Failed to parse IP address:", ipStr1)
+	} else {
+		fmt.Println("Parsed IP address:", ip1)
+	}
+
+	if ip2 == nil {
+		log.Println("Failed to parse IP address:", ipStr2)
+	} else {
+		fmt.Println("Parsed IP address:", ip2)
+	}
+
+	if ip3 == nil {
+		fmt.Println("Invalid IP address:", ipStr3)
+	} else {
+		fmt.Println("Parsed IP address:", ip3)
+	}
+
 }
