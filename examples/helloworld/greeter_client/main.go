@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc"
@@ -40,6 +41,37 @@ var (
 	addr = flag.String("addr", "localhost:50051", "the address to connect to")
 	name = flag.String("name", defaultName, "Name to greet")
 )
+
+func formatIP(addr string) (addrIP string, ok bool) {
+	ip := net.ParseIP(addr)
+	if ip == nil {
+		return "", false
+	}
+	if ip.To4() != nil {
+		return addr, true
+	}
+	return "[" + addr + "]", true
+}
+
+func newformatIP(addr string) (addrIP string, ok bool) {
+	// Split the address into IP and zone parts if it contains a zone identifier
+	ipStr := addr
+	if strings.Contains(addr, "%") {
+		ipStr = addr[:strings.Index(addr, "%")]
+	}
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return "", false
+	}
+	if ip.To4() != nil {
+		return addr, true
+	}
+	// IPv6 addresses need brackets
+	if strings.Contains(addr, "%") {
+		return "[" + ipStr + addr[strings.Index(addr, "%"):] + "]", true
+	}
+	return "[" + addr + "]", true
+}
 
 func main() {
 	flag.Parse()
@@ -62,32 +94,41 @@ func main() {
 
 	fmt.Println("+++++++++++++++++++++++++++++++++++")
 
-	ipStr1 := "dns:///[fe80::1ff:fe23:4567:890a%eth2]:8080"
-	ipStr2 := "[fe80::1ff:fe23:4567:890a%eth2]:8080"
-	ipStr3 := "fe80::1ff:fe23:4567:890a%eth2"
-
-	// Parse the IP addresses
-	ip1 := net.ParseIP(ipStr1)
-	ip2 := net.ParseIP(ipStr2)
-	ip3 := net.ParseIP(ipStr3)
-
-	// Check and print the results
-	if ip1 == nil {
-		log.Println("Failed to parse IP address:", ipStr1)
-	} else {
-		fmt.Println("Parsed IP address:", ip1)
+	testCases := []string{
+		"[fe80::1ff:fe23:4567:890a%25eth2]:8080",
+		"[fe80::1ff:fe23:4567:890a%25eth2]",
+		"fe80::1ff:fe23:4567:890a%25eth2",
+		"fe80::1ff:fe23:4567:890a%eth2",
+		"fe80::1ff:fe23:4567:890",
+		//	"dns://[fe80::1ff:fe23:4567:890a%eth2]:8080",
+		//	"[fe80::1ff:fe23:4567:890a%eth2]:8080",
 	}
 
-	if ip2 == nil {
-		log.Println("Failed to parse IP address:", ipStr2)
-	} else {
-		fmt.Println("Parsed IP address:", ip2)
+	fmt.Println("\n--------------Ipv6 test using net.ParseIP()---------------------")
+	for _, ipv6 := range testCases {
+		ip := net.ParseIP(ipv6)
+		if ip == nil {
+			fmt.Println("Failed using net.ParseIP(): ", ipv6)
+		} else {
+			fmt.Println("Successfully using net.ParseIP(): ", ip)
+		}
 	}
-
-	if ip3 == nil {
-		fmt.Println("Invalid IP address:", ipStr3)
-	} else {
-		fmt.Println("Parsed IP address:", ip3)
+	fmt.Println("\n--------------Ipv6 test using formatIP()---------------------")
+	for _, ipv6 := range testCases {
+		ip, ok := formatIP(ipv6)
+		if ok {
+			fmt.Println("Successfully using formatIP(): ", ip)
+		} else {
+			fmt.Println("Failed using formatIP(): ", ipv6)
+		}
 	}
-
+	fmt.Println("\n--------------Ipv6 test using newformatIP()---------------------")
+	for _, ipv6 := range testCases {
+		ip, ok := newformatIP(ipv6)
+		if ok {
+			fmt.Println("Successfully using newformatIP(): ", ip)
+		} else {
+			fmt.Println("Failed using newformatIP(): ", ipv6)
+		}
+	}
 }
