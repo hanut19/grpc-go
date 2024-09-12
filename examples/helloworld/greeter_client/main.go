@@ -53,26 +53,6 @@ func formatIP(addr string) (addrIP string, ok bool) {
 	return "[" + addr + "]", true
 }
 
-func newformatIP(addr string) (addrIP string, ok bool) {
-	// Split the address into IP and zone parts if it contains a zone identifier
-	ipStr := addr
-	if strings.Contains(addr, "%") {
-		ipStr = addr[:strings.Index(addr, "%")]
-	}
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
-		return "", false
-	}
-	if ip.To4() != nil {
-		return addr, true
-	}
-	// IPv6 addresses need brackets
-	if strings.Contains(addr, "%") {
-		return "[" + ipStr + addr[strings.Index(addr, "%"):] + "]", true
-	}
-	return "[" + addr + "]", true
-}
-
 func main() {
 	flag.Parse()
 	// Set up a connection to the server.
@@ -95,13 +75,9 @@ func main() {
 	fmt.Println("+++++++++++++++++++++++++++++++++++")
 
 	testCases := []string{
-		"[fe80::1ff:fe23:4567:890a%25eth2]:8080",
-		"[fe80::1ff:fe23:4567:890a%25eth2]",
 		"fe80::1ff:fe23:4567:890a%25eth2",
 		"fe80::1ff:fe23:4567:890a%eth2",
 		"fe80::1ff:fe23:4567:890",
-		//	"dns://[fe80::1ff:fe23:4567:890a%eth2]:8080",
-		//	"[fe80::1ff:fe23:4567:890a%eth2]:8080",
 	}
 
 	fmt.Println("\n--------------Ipv6 test using net.ParseIP()---------------------")
@@ -114,21 +90,16 @@ func main() {
 		}
 	}
 	fmt.Println("\n--------------Ipv6 test using formatIP()---------------------")
-	for _, ipv6 := range testCases {
-		ip, ok := formatIP(ipv6)
+	for _, addr := range testCases {
+		ipStr := addr
+		if strings.Contains(addr, "%") {
+			addr = addr[:strings.Index(addr, "%")]
+		}
+		ip, ok := formatIP(addr)
 		if ok {
 			fmt.Println("Successfully using formatIP(): ", ip)
 		} else {
-			fmt.Println("Failed using formatIP(): ", ipv6)
-		}
-	}
-	fmt.Println("\n--------------Ipv6 test using newformatIP()---------------------")
-	for _, ipv6 := range testCases {
-		ip, ok := newformatIP(ipv6)
-		if ok {
-			fmt.Println("Successfully using newformatIP(): ", ip)
-		} else {
-			fmt.Println("Failed using newformatIP(): ", ipv6)
+			fmt.Println("Failed using formatIP(): ", ipStr)
 		}
 	}
 }
