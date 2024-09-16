@@ -22,7 +22,10 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
+	"net"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc"
@@ -38,6 +41,17 @@ var (
 	addr = flag.String("addr", "localhost:50051", "the address to connect to")
 	name = flag.String("name", defaultName, "Name to greet")
 )
+
+func formatIP(addr string) (addrIP string, ok bool) {
+	ip := net.ParseIP(addr)
+	if ip == nil {
+		return "", false
+	}
+	if ip.To4() != nil {
+		return addr, true
+	}
+	return "[" + addr + "]", true
+}
 
 func main() {
 	flag.Parse()
@@ -57,4 +71,35 @@ func main() {
 		log.Fatalf("could not greet: %v", err)
 	}
 	log.Printf("Greeting: %s", r.GetMessage())
+
+	fmt.Println("+++++++++++++++++++++++++++++++++++")
+
+	testCases := []string{
+		"fe80::1ff:fe23:4567:890a%25eth2",
+		"fe80::1ff:fe23:4567:890a%eth2",
+		"fe80::1ff:fe23:4567:890",
+	}
+
+	fmt.Println("\n--------------Ipv6 test using net.ParseIP()---------------------")
+	for _, ipv6 := range testCases {
+		ip := net.ParseIP(ipv6)
+		if ip == nil {
+			fmt.Println("Failed using net.ParseIP(): ", ipv6)
+		} else {
+			fmt.Println("Successfully using net.ParseIP(): ", ip)
+		}
+	}
+	fmt.Println("\n--------------Ipv6 test using formatIP()---------------------")
+	for _, addr := range testCases {
+		ipStr := addr
+		if strings.Contains(addr, "%") {
+			addr = addr[:strings.Index(addr, "%")]
+		}
+		ip, ok := formatIP(addr)
+		if ok {
+			fmt.Println("Successfully using formatIP(): ", ip)
+		} else {
+			fmt.Println("Failed using formatIP(): ", ipStr)
+		}
+	}
 }
